@@ -57,24 +57,39 @@ def main():
 	global hasToRecord
 	args = setArguments()
 	vs = setWebcam(args)
+	index = 0
 	firstFrame = None
 	fourcc = cv2.VideoWriter_fourcc(*'XVID')
-	out = cv2.VideoWriter('output.avi', fourcc, 60.0, (640,  480))
+	out = cv2.VideoWriter(f'./videos/output{index}.avi', fourcc, 60.0, (640,  480))
 
 	counter = 0
 	while True:
 		text = "Unoccupieqd"
 		frame = vs.read()
-		out.write(frame)		
-	
+		if(hasToRecord == True):
+			out.write(frame)
+			counter+=1
+			if(counter==1000):
+				index+=1
+				counter = 0
+				hasToRecord= False
+				out.release()
+				out = cv2.VideoWriter(f'./videos/output{index}.avi', fourcc, 60.0, (640,  480))
+				sendEmail.send()
+				deleteImage()
+
+
+
+
 		frame = imutils.resize(frame, width=500)
+
 
 		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 		gray = cv2.GaussianBlur(gray, (21, 21), 0)
 		if firstFrame is None:
 			firstFrame = gray
 			continue
-
+		
 		frameDelta = cv2.absdiff(firstFrame, gray)
 		thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
 		
@@ -86,10 +101,10 @@ def main():
 
 		for c in cnts:
 			if cv2.contourArea(c) < args["min_area"]:
-				deleteImage()
 				setHasRecordFalse()
 				continue	
-			saveFrame(frame)		
+			saveFrame(frame)
+			hasToRecord=True		
 			(x, y, w, h) = cv2.boundingRect(c)
 			cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 			text = "Occupied"
@@ -97,7 +112,6 @@ def main():
 		
 
 		drawImage(frame, frameDelta, text, thresh)
-		sendEmail.send(1)
 
 
 

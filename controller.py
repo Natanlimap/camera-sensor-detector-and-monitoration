@@ -1,18 +1,13 @@
 from sys import argv
-
+import os
 import webcam
+import parser
 
 def record():
     print("Gravando")
     webcam.setHasRecordTrue()
 
-def delete():
+def delete(index):
     print("DELETAR")
-    #TODO DELETAR VIDEO
-
-def start():
-    webcam.main()
-
-if(argv[1]=="delete"):
-    delete()
+    os.remove(f'./videos/output{index}.avi')
 

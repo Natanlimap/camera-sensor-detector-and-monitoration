@@ -17,7 +17,7 @@ receiver_email = "new@example.com"
 
 
 last_sent = datetime.datetime.now()
-
+last_index_sent = 0
 def timeFromLastSent():
     if(last_sent is None):
         return 10
@@ -25,16 +25,20 @@ def timeFromLastSent():
         return (datetime.datetime.now() - last_sent).total_seconds()
 
 # send your email
-def send(index):
+def send():
+    global last_index_sent
     global last_sent
-    if(os.path.exists("./frame.jpg") and timeFromLastSent() >= 10):
+    DIR = './videos'
+    videosToSend = len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))])
+    for i in range(last_index_sent, videosToSend + 1):
+        last_index_sent=i
         last_sent = datetime.datetime.now()
         encoded = base64.b64encode(open("frame.jpg", "rb").read()).decode()
         html = f"""\
         <html>
         <body>
             <img src="data:image/jpg;base64,{encoded}">
-            <button onclick="window.open("localhost.com/{index}");">Gravar</button>
+            <a href="http://localhost:3000/{last_index_sent}">Gravar</a>
         </body>
         </html>
         """
