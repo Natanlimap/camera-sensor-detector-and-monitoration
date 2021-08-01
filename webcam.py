@@ -5,6 +5,20 @@ import datetime
 import imutils
 import time
 import cv2
+import os
+import datetime
+import sendEmail
+hasToRecord = False 
+isRecording = False
+def setHasRecordTrue():
+	global hasToRecord
+	hasToRecord = True
+
+def setHasRecordFalse():
+	global hasToRecord
+	hasToRecord = False
+
+
 
 def setArguments():
 	ap = argparse.ArgumentParser()
@@ -25,25 +39,36 @@ def setInitialFrame(vs, args):
 
 def drawImage(frame, frameDelta, text, thresh):
 	cv2.putText(frame, "Room Status: {}".format(text), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+
 	cv2.putText(frame, datetime.datetime.now().strftime("%A %d %B %Y %I:%M:%S%p"), 
 		(10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
 	cv2.imshow("Security Feed", frame)
 	cv2.imshow("Thresh", thresh)
 	cv2.imshow("Frame Delta", frameDelta)
 
+def saveFrame(frame):
+	cv2.imwrite("frame.jpg", frame)
+
+def deleteImage():
+	if(os.path.exists("frame.jpg")):
+		os.remove("frame.jpg")
 
 def main():
+	global hasToRecord
 	args = setArguments()
 	vs = setWebcam(args)
 	firstFrame = None
+	fourcc = cv2.VideoWriter_fourcc(*'XVID')
+	out = cv2.VideoWriter('output.avi', fourcc, 60.0, (640,  480))
 
+	counter = 0
 	while True:
-		text = "Unoccupied"
-		frame = setInitialFrame(vs, args)
-		if frame is None:
-			break
-
+		text = "Unoccupieqd"
+		frame = vs.read()
+		out.write(frame)		
+	
 		frame = imutils.resize(frame, width=500)
+
 		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 		gray = cv2.GaussianBlur(gray, (21, 21), 0)
 		if firstFrame is None:
@@ -61,17 +86,26 @@ def main():
 
 		for c in cnts:
 			if cv2.contourArea(c) < args["min_area"]:
-				continue
+				deleteImage()
+				setHasRecordFalse()
+				continue	
+			saveFrame(frame)		
 			(x, y, w, h) = cv2.boundingRect(c)
 			cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 			text = "Occupied"
-
+			
+		
 
 		drawImage(frame, frameDelta, text, thresh)
+		sendEmail.send(1)
+
+
 
 		key = cv2.waitKey(1) & 0xFF
 		if key == ord("q"):
 			break
+
 	vs.stop() if args.get("video", None) is None else vs.release()
 	cv2.destroyAllWindows()
+
 main()
